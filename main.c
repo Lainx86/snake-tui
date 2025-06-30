@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <time.h>
 #include <curses.h>  // requires installing ncurses package on Arch (and linking with gcc using -lncurses)
 
 #define COLUMNS    20
@@ -34,6 +35,9 @@ enum CellState {
   SNAKE = 1,
   APPLE = 2,
 };
+
+unsigned int high_score;
+char high_score_text[27] = "";
 
 /* We add certain identical values to the values of the enum fields.
  * This is intentional, as at a given orientation, there is always one that we cannot switch to,
@@ -48,6 +52,7 @@ enum SnakeDirection {
 enum CellState grid[ROWS][COLUMNS];
 int apple[2];  // grid coordinates for current apple
 int score = 0;
+
 
 typedef struct snake_node {  // we use a linked list type structure to describe the snake entity
   int pos[2];  // (x;y) coords
@@ -68,11 +73,52 @@ snakeNode_t *current = head;
 
 }
 
+static int get_highscore() {
+  FILE *fptr = fopen("highscore.txt", "r");
+  char input_buff[100];
+  char *endptr;
+  const char *errstr;
+
+  if (fptr == NULL) {
+    high_score = 999999;  // to debug
+    return 1;
+  }
+
+  if (fgets(input_buff, sizeof(input_buff), fptr) != NULL) {
+    high_score = strtol(input_buff, &endptr, 10);
+  } else {
+    endwin();
+    printf("failed to read highscore from file\n");
+  }
+
+  fclose(fptr);
+  return 0;
+}
+
+static int set_highscore() {
+  FILE *fptr = fopen("highscore.txt", "w+");
+  if (fptr == NULL) {
+    high_score = 0;
+    return 1;
+  }
+
+  if (high_score < score) {
+    fprintf(fptr, "%d", score);
+    printf("highscore: %d score: %d\n", high_score, score);
+    strcpy(high_score_text, "(that's a new high score!)");
+    printf("updated text\n");
+  }
+
+  fclose(fptr);
+  return 0;
+}
+
 static void int_handler(int wtv) {
   free_all();
 
   endwin();
-  printf("Exited. See you next time! ヾ(＾ ∇ ＾)\n");
+  set_highscore();
+  printf("Exited. See you next time! ヾ(＾ ∇ ＾) | Score: %d %s\n", score, high_score_text);
   exit(0);
 }
 
@@ -165,7 +211,8 @@ static void check_collisions() {
   if (!within_rows || !within_columns) {
     endwin();
     free_all();
-    printf("You hit your head against the wall! ᕙ( ᗒᗣᗕ )ᕗ | Score: %d\n", score);
+    set_highscore();
+    printf("You hit your head against the wall! ᕙ( ᗒᗣᗕ )ᕗ | Score: %d %s\n", score, high_score_text);
     exit(0);
   }
   
@@ -175,7 +222,8 @@ static void check_collisions() {
     if (!memcmp(head->pos, current->pos, sizeof(head->pos))) {
       endwin();
       free_all();
-      printf("You bit you tail! (╥﹏╥) | Score: %d\n", score);
+      set_highscore();
+      printf("You bit you tail! (╥﹏╥) | Score: %d\n %s", score, high_score_text);
       exit(0);
     }
     current = current->next;
@@ -242,6 +290,8 @@ static int main_loop() {
   enum SnakeDirection orien_buff = EAST;
   enum SnakeDirection orien = EAST;
 
+  get_highscore();
+
   while (1) {  // todo: use dedicated constants like KEY_UP OR KEY_DOWN instead of key codes
     check_apple();
     update_apple();
@@ -249,7 +299,7 @@ static int main_loop() {
     move_snake(orien);
     render_grid(grid);
     int ch = 0;  // reset input buffer, probably a better way to do this but wtv
-    printw("Score: %d  ٩(^ᗜ^ )و ´\n", score);
+    printw("Score: %d | High score: %d ٩(^ᗜ^ )و ´\n", score, high_score);
     refresh();
     ch = getch();  // wait for key press
     if (ch != ERR) {  // check if any key presses were actually made.
@@ -282,6 +332,7 @@ static int main_loop() {
 int main(int argc, char *argv[])
 {
   signal(SIGINT, int_handler);  // handle Ctrl+C by the user
+  srand(time(NULL));  // set seed for randomized numbers 
 
   setlocale(LC_ALL, "en_US.UTF-8");  // set locale to support wide characters we will be using
 
