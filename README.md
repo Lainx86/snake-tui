@@ -12,5 +12,9 @@ $ make
 ```
 ...and then run
 ```bash
-./snake_tui
+$ ./snake_tui
 ```
+
+### License
+
+This software is licensed under the [MIT License](https://mit-license.org)
