@@ -80,6 +80,10 @@ static int get_highscore() {
   const char *errstr;
 
   if (fptr == NULL) {
+    fclose(fptr);
+    fopen("highscore.txt", "w");
+    fclose(fptr);
+    fptr = fopen("highscore.txt", "r");
     high_score = 0;
     return 1;
   }
