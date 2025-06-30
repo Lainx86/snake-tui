@@ -80,7 +80,7 @@ static int get_highscore() {
   const char *errstr;
 
   if (fptr == NULL) {
-    high_score = 999999;  // to debug
+    high_score = 0;
     return 1;
   }
 
