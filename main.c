@@ -104,9 +104,7 @@ static int set_highscore() {
 
   if (high_score < score) {
     fprintf(fptr, "%d", score);
-    printf("highscore: %d score: %d\n", high_score, score);
     strcpy(high_score_text, "(that's a new high score!)");
-    printf("updated text\n");
   }
 
   fclose(fptr);
